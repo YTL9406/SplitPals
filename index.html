@@ -423,6 +423,83 @@
           box-shadow: 0 0 0 3px transparent;
         }
       }
+      /* ===== 手機版面修正 ===== */
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      /* iPhone：輸入框字體小於 16px 時，點進去會自動放大畫面 */
+      input[type="text"],
+      input[type="number"],
+      input[type="date"],
+      select {
+        font-size: 16px;
+      }
+      /* 拿掉 iOS 預設的內陰影樣式 */
+      input[type="text"],
+      input[type="number"] {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      @media (max-width: 480px) {
+        body {
+          padding: 10px;
+        }
+        .container {
+          padding: 14px;
+          border-radius: 14px;
+        }
+        .section {
+          padding: 14px;
+          margin-bottom: 14px;
+        }
+        h1 {
+          font-size: 21px;
+          margin-bottom: 16px;
+        }
+
+        /* 兩個日期欄位上下排列，各自有完整寬度 */
+        .date-row {
+          flex-direction: column;
+          gap: 0;
+        }
+
+        /* 新增成員按鈕不要折成兩行 */
+        .member-input-row button {
+          width: auto;
+          padding: 0 16px;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+
+        select {
+          text-overflow: ellipsis;
+        }
+        .custom-row span {
+          width: 56px;
+        }
+
+        /* 帳目明細：編輯／刪除鈕稍微加大，比較好點 */
+        .icon-btn {
+          width: 30px;
+          height: 30px;
+        }
+        .card-actions {
+          gap: 8px;
+        }
+        .item-card,
+        .private-card {
+          padding: 10px 12px;
+        }
+
+        .btn {
+          font-size: 15px;
+        }
+        .btn-reset {
+          font-size: 14px;
+        }
+      }
     </style>
   </head>
   <body>
