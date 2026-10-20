@@ -1,0 +1,1687 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>旅費分攤計算</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f4f7f9;
+        color: #2d3748;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 28px;
+        border-radius: 16px;
+        box-shadow:
+          0 10px 25px -5px rgba(0, 0, 0, 0.05),
+          0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      }
+      h1 {
+        font-size: 24px;
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 24px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+      .section {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+      }
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #3b5268;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #cbd5e1;
+        display: block;
+      }
+      label {
+        font-weight: 500;
+        display: block;
+        margin-top: 10px;
+        margin-bottom: 6px;
+        font-size: 14px;
+        color: #4a5568;
+      }
+      input[type="text"],
+      input[type="number"],
+      input[type="date"],
+      select {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        box-sizing: border-box;
+        margin-bottom: 8px;
+        font-size: 15px;
+        background-color: #f8fafc;
+        color: #2d3748;
+        transition:
+          border-color 0.2s,
+          background-color 0.2s;
+      }
+      /* 日期欄位：可直接輸入，也可按 📅 用日期選擇器（原生日期欄位隱藏，只用來跳出選擇器） */
+      .date-field {
+        position: relative;
+      }
+      .date-field input[type="text"] {
+        padding-right: 46px;
+      }
+      .date-field .cal-btn {
+        position: absolute;
+        right: 6px;
+        top: 5px;
+        width: 34px;
+        height: 34px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 18px;
+        border-radius: 6px;
+        padding: 0;
+      }
+      .date-field .cal-btn:hover {
+        background: #e2e8f0;
+      }
+      .date-field input[type="date"] {
+        position: absolute;
+        left: 0;
+        bottom: 8px;
+        width: 100%;
+        height: 1px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .date-invalid {
+        border-color: #e53e3e !important;
+        background-color: #fff5f5 !important;
+      }
+      .part-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .part-actions .btn {
+        width: auto;
+        margin-top: 0;
+        padding: 9px 20px;
+        font-size: 14px;
+      }
+      .checkbox-group label:has(input:disabled) {
+        opacity: 0.65;
+        cursor: default;
+      }
+      .checkbox-group input:disabled {
+        cursor: default;
+      }
+      .date-row {
+        display: flex;
+        gap: 8px;
+      }
+      .date-row > div {
+        flex: 1;
+        min-width: 0;
+      }
+      input[type="text"]:focus,
+      input[type="number"]:focus,
+      input[type="date"]:focus,
+      select:focus {
+        outline: none;
+        border-color: #3b5268;
+        background-color: #fff;
+      }
+      input[readonly] {
+        background: #e2e8f0;
+        color: #4a5568;
+      }
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
+      .btn {
+        color: #fff;
+        border: none;
+        padding: 12px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        width: 100%;
+        font-size: 15px;
+        margin-top: 6px;
+        transition:
+          background 0.2s,
+          transform 0.1s;
+      }
+      .btn:active {
+        transform: scale(0.99);
+      }
+      .btn-public {
+        background: #3b5268;
+      }
+      .btn-public:hover {
+        background: #2c3e50;
+      }
+      .btn-private {
+        background: #8082ab;
+      }
+      .btn-private:hover {
+        background: #6d6f9a;
+      }
+      .btn-main {
+        background: #2c3e50;
+      }
+      .btn-main:hover {
+        background: #1a252f;
+      }
+      .btn-reset {
+        background: #a0aec0;
+      }
+      .btn-reset:hover {
+        background: #718096;
+      }
+      .payer-badge {
+        display: inline-block;
+        margin: 6px 0 4px;
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fcd34d;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .card-actions {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .icon-btn {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid;
+        background: #fff;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+      }
+      .edit-btn {
+        color: #2563eb;
+        border-color: #93c5fd;
+      }
+      .edit-btn:hover {
+        background: #dbeafe;
+      }
+      .del-btn {
+        color: #dc2626;
+        border-color: #fca5a5;
+        font-weight: 700;
+        font-size: 16px;
+      }
+      .del-btn:hover {
+        background: #fee2e2;
+      }
+      .editing {
+        outline: 2px solid #3b82f6;
+        outline-offset: 1px;
+      }
+      .edit-note {
+        background: #e0f2fe;
+        border: 1px solid #7dd3fc;
+        color: #075985;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin: 6px 0 8px;
+      }
+      .member-tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+        min-height: 38px;
+        align-items: center;
+      }
+      .member-tag {
+        background: #edf2f7;
+        border: 1px solid #cbd5e1;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .member-tag .remove-btn {
+        background: rgba(45, 55, 72, 0.12);
+        border: none;
+        color: #2d3748;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+      .member-tag .remove-btn:hover {
+        background: rgba(45, 55, 72, 0.25);
+      }
+      .member-input-row {
+        display: flex;
+        gap: 8px;
+      }
+      .member-input-row input {
+        margin-bottom: 0;
+      }
+      .member-input-row button {
+        margin-top: 0;
+        width: 110px;
+      }
+      .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .checkbox-group label {
+        font-weight: normal;
+        background: #edf2f7;
+        padding: 6px 12px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-top: 0;
+        border: 1px solid #cbd5e1;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .checkbox-group input[type="checkbox"] {
+        accent-color: #3b5268;
+        cursor: pointer;
+      }
+      .custom-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .custom-row span {
+        width: 70px;
+        font-size: 14px;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .custom-row input {
+        margin-bottom: 0;
+      }
+      .hint {
+        font-size: 13px;
+        color: #718096;
+        margin: 4px 0 8px;
+      }
+      .item-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .item-card {
+        background: #edf2f7;
+        border: 1px solid #cbd5e1;
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .private-card {
+        background: #fef9c3;
+        border: 1px solid #fde047;
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .result-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 15px;
+        color: #166534;
+      }
+      #customModal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.4);
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+      }
+      .modal-content {
+        background: #fff;
+        padding: 24px 30px;
+        border-radius: 14px;
+        text-align: center;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        max-width: 320px;
+        width: 100%;
+      }
+      .modal-content p {
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+      .flash {
+        animation: flashBorder 1.2s ease-out;
+      }
+      @keyframes flashBorder {
+        from {
+          box-shadow: 0 0 0 3px #93c5fd;
+        }
+        to {
+          box-shadow: 0 0 0 3px transparent;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>旅費分攤計算</h1>
+
+      <div class="section" id="tripSection">
+        <span class="section-title">出遊資訊</span>
+        <label style="margin-top: 0">出遊地點</label>
+        <input
+          type="text"
+          id="tripLocation"
+          placeholder="如：台東、日本大阪"
+          onkeydown="
+            enterTo(event, () =>
+              document.getElementById('tripStartText').focus(),
+            )
+          "
+        />
+        <div class="date-row">
+          <div>
+            <label>開始日期</label>
+            <div class="date-field">
+              <input
+                type="text"
+                id="tripStartText"
+                inputmode="numeric"
+                maxlength="12"
+                autocomplete="off"
+                placeholder="YYYY/MM/DD"
+                oninput="onDateTyping('tripStart')"
+                onblur="onDateTyping('tripStart', true)"
+                onkeydown="
+                  enterTo(event, () => {
+                    onDateTyping('tripStart', true);
+                    document.getElementById('tripEndText').focus();
+                  })
+                "
+              />
+              <button
+                type="button"
+                class="cal-btn"
+                onclick="openDatePicker('tripStart')"
+                title="選擇日期"
+              >
+                📅
+              </button>
+              <input
+                type="date"
+                id="tripStart"
+                tabindex="-1"
+                onchange="syncDateDisplay()"
+              />
+            </div>
+          </div>
+          <div>
+            <label>結束日期（單日可留空）</label>
+            <div class="date-field">
+              <input
+                type="text"
+                id="tripEndText"
+                inputmode="numeric"
+                maxlength="12"
+                autocomplete="off"
+                placeholder="YYYY/MM/DD"
+                oninput="onDateTyping('tripEnd')"
+                onblur="onDateTyping('tripEnd', true)"
+                onkeydown="enterTo(event, completeTripInfo)"
+              />
+              <button
+                type="button"
+                class="cal-btn"
+                onclick="openDatePicker('tripEnd')"
+                title="選擇日期"
+              >
+                📅
+              </button>
+              <input
+                type="date"
+                id="tripEnd"
+                tabindex="-1"
+                onchange="syncDateDisplay()"
+              />
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-main" onclick="completeTripInfo()">
+          完成
+        </button>
+      </div>
+
+      <div class="section" id="memberSection">
+        <span class="section-title">成員設定</span>
+        <div id="memberTagsContainer" class="member-tags-container"></div>
+        <div class="member-input-row">
+          <input
+            type="text"
+            id="newMemberInput"
+            placeholder="輸入成員名字（按Enter或點新增）"
+            onkeypress="
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                if (!this.value.trim()) goToSection('participantSection');
+                else addMember();
+              }
+            "
+          />
+          <button class="btn btn-public" onclick="addMember()">新增成員</button>
+        </div>
+        <div class="hint">成員名單會自動記住，下次開啟不用重新輸入</div>
+      </div>
+
+      <div class="section" id="participantSection">
+        <span class="section-title">此次參與人員</span>
+        <div id="participantChips" class="checkbox-group"></div>
+        <div class="hint" id="participantHint"></div>
+        <div class="part-actions">
+          <button
+            type="button"
+            class="btn btn-reset"
+            id="selectAllBtn"
+            onclick="selectAllParticipants()"
+          >
+            全選
+          </button>
+          <button
+            type="button"
+            class="btn btn-main"
+            id="participantDoneBtn"
+            onclick="confirmParticipants()"
+          >
+            完成
+          </button>
+          <button
+            type="button"
+            class="btn btn-public"
+            id="participantEditBtn"
+            style="display: none"
+            onclick="editParticipants()"
+          >
+            修改參與人員
+          </button>
+        </div>
+      </div>
+
+      <div id="mainFlow" style="display: none">
+        <div class="section" id="expenseSection">
+          <span class="section-title">公用代墊消費</span>
+          <label style="margin-top: 0">代墊人</label>
+          <select
+            id="payerSelect"
+            onkeydown="
+              enterTo(event, () => document.getElementById('itemTitle').focus())
+            "
+          ></select>
+
+          <input
+            type="text"
+            id="itemTitle"
+            placeholder="項目描述（如：租車、晚餐）"
+            onkeypress="
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                afterTitleEnter();
+              }
+            "
+          />
+          <input
+            type="number"
+            id="itemAmount"
+            placeholder="總金額 (NTD)"
+            step="1"
+            inputmode="numeric"
+            oninput="updateCustomTotal()"
+            onkeypress="
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                afterAmountEnter();
+              }
+            "
+          />
+
+          <label>分攤方式</label>
+          <select id="splitMode" onchange="updateSplitUI()">
+            <option value="equal">平均分攤（可取消勾選沒消費的人）</option>
+            <option value="custom">自訂每人金額</option>
+            <option value="mixed">混合（個別項目 + 平均分攤）</option>
+          </select>
+
+          <div id="customBox" style="display: none">
+            <label id="customLabel">每人實際消費金額（沒消費的留空）</label>
+            <div id="customInputs"></div>
+            <div class="hint" id="customHint">
+              上方的總金額會依各人金額自動加總
+            </div>
+          </div>
+
+          <div id="equalBox">
+            <label id="equalLabel">誰一起分攤？</label>
+            <div id="participantsGroup" class="checkbox-group"></div>
+            <div class="hint" id="mixedInfo" style="display: none"></div>
+          </div>
+
+          <div
+            class="edit-note"
+            id="expenseEditNote"
+            style="display: none"
+          ></div>
+          <button
+            class="btn btn-public"
+            id="addExpenseBtn"
+            onclick="addExpense()"
+          >
+            新增代墊紀錄
+          </button>
+          <button
+            class="btn btn-reset"
+            id="cancelExpenseBtn"
+            style="display: none"
+            onclick="cancelEditExpense()"
+          >
+            取消編輯
+          </button>
+        </div>
+
+        <div class="section">
+          <span class="section-title">私款</span>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <select
+              id="debtorSelect"
+              onchange="updateCreditorOptions()"
+            ></select>
+            <span style="font-weight: 600; color: #4a5568">欠</span>
+            <select id="creditorSelect"></select>
+          </div>
+          <input
+            type="number"
+            id="privateAmount"
+            placeholder="私款金額 (NTD)"
+            step="1"
+            inputmode="numeric"
+            onkeypress="
+              if (event.key === 'Enter') {
+                addPrivateDebt();
+                event.preventDefault();
+              }
+            "
+          />
+          <div
+            class="edit-note"
+            id="privateEditNote"
+            style="display: none"
+          ></div>
+          <button
+            class="btn btn-private"
+            id="addPrivateBtn"
+            onclick="addPrivateDebt()"
+          >
+            新增私款紀錄
+          </button>
+          <button
+            class="btn btn-reset"
+            id="cancelPrivateBtn"
+            style="display: none"
+            onclick="cancelEditPrivate()"
+          >
+            取消編輯
+          </button>
+        </div>
+
+        <div class="section">
+          <span class="section-title">目前帳目明細</span>
+          <ul id="itemList" class="item-list"></ul>
+        </div>
+
+        <div
+          class="section"
+          style="border: none; background: transparent; padding: 0"
+        >
+          <button
+            class="btn btn-main"
+            style="font-size: 17px; padding: 14px"
+            onclick="calculate()"
+          >
+            開始計算
+          </button>
+          <button class="btn btn-reset" onclick="resetAll()">
+            重新計算（清除所有帳目與出遊資訊，保留成員）
+          </button>
+          <div id="resultArea" class="result-box" style="display: none"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="customModal">
+      <div class="modal-content">
+        <p id="modalText">新增成功！</p>
+        <button
+          class="btn btn-main"
+          style="margin-top: 0"
+          onclick="closeModal()"
+        >
+          確定
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // 成員名單存在瀏覽器 localStorage，下次開啟會自動帶入
+      const MEMBERS_KEY = "tripSplitMembers";
+      function loadMembers() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(MEMBERS_KEY));
+          if (
+            Array.isArray(saved) &&
+            saved.length > 0 &&
+            saved.every((s) => typeof s === "string" && s)
+          )
+            return saved;
+        } catch (e) {}
+        return ["A", "B", "C", "D"];
+      }
+      function saveMembers() {
+        try {
+          localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+        } catch (e) {}
+      }
+      let members = loadMembers(); // 所有成員（會記住）
+      let participants = []; // 此次參與人員（預設都不勾選；下方欄位與計算只會用到勾選的人）
+      let expenses = []; // { id, title, amount, payer, shares: {name: amount}, mode }
+      let privateDebts = [];
+      let lastFocusTargetId = null;
+      let editingExpenseId = null;
+      let editingPrivateId = null;
+
+      // 金額欄位只能用輸入的：禁止滾輪與上下方向鍵調整數值
+      document.addEventListener(
+        "wheel",
+        function () {
+          if (document.activeElement.type === "number")
+            document.activeElement.blur();
+        },
+        { passive: true },
+      );
+      document.addEventListener("keydown", function (e) {
+        if (
+          e.target.type === "number" &&
+          (e.key === "ArrowUp" || e.key === "ArrowDown")
+        ) {
+          e.preventDefault();
+        }
+      });
+
+      // Enter 鍵輔助：輸入法選字時按 Enter 不會誤觸發
+      function enterTo(e, fn) {
+        if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+        e.preventDefault();
+        fn();
+      }
+
+      // 捲動到指定區塊（可選擇是否 focus 某個欄位）
+      function goToSection(sectionId, focusId) {
+        const s = document.getElementById(sectionId);
+        if (!s) return;
+        s.scrollIntoView({ behavior: "smooth", block: "start" });
+        s.classList.remove("flash");
+        void s.offsetWidth;
+        s.classList.add("flash");
+        if (focusId) {
+          setTimeout(() => {
+            const el = document.getElementById(focusId);
+            if (el && !el.readOnly) el.focus({ preventScroll: true });
+          }, 400);
+        }
+      }
+
+      // 出遊資訊「完成」：檢查日期後，移到成員設定
+      function completeTripInfo() {
+        onDateTyping("tripStart", true);
+        onDateTyping("tripEnd", true);
+        const sT = document.getElementById("tripStartText");
+        const eT = document.getElementById("tripEndText");
+        const d1 = document.getElementById("tripStart").value;
+        const d2 = document.getElementById("tripEnd").value;
+        if (!d1 && sT.value.trim()) {
+          alert(
+            "開始日期格式不正確，請輸入像 2026/10/17 這樣的日期，或按 📅 選擇。",
+          );
+          sT.focus();
+          return;
+        }
+        if (!d2 && eT.value.trim()) {
+          alert(
+            "結束日期格式不正確，請輸入像 2026/10/17 這樣的日期，或按 📅 選擇。",
+          );
+          eT.focus();
+          return;
+        }
+        if (d1 && d2 && d2 < d1) {
+          alert("結束日期不能早於開始日期！");
+          eT.focus();
+          return;
+        }
+        goToSection("memberSection", "newMemberInput");
+      }
+
+      // 公用消費：項目描述 Enter → 金額（自訂模式則到第一位成員）
+      function afterTitleEnter() {
+        const mode = document.getElementById("splitMode").value;
+        const el = document.getElementById(
+          mode === "custom" ? "share_0" : "itemAmount",
+        );
+        if (el) el.focus();
+      }
+
+      // 公用消費：金額 Enter → 直接新增（代墊人已在最前面選好）
+      function afterAmountEnter() {
+        addExpense();
+      }
+
+      function formatMoney(a) {
+        return Number(a).toLocaleString("en-US");
+      }
+      function openDatePicker(id) {
+        const el = document.getElementById(id);
+        try {
+          el.showPicker();
+        } catch (e) {
+          el.focus();
+        }
+      }
+      // 日期選擇器選好後（或重設時），把日期同步顯示到文字框
+      function syncDateDisplay() {
+        ["tripStart", "tripEnd"].forEach((id) => {
+          const v = document.getElementById(id).value;
+          const txt = document.getElementById(id + "Text");
+          txt.value = v ? v.replace(/-/g, "/") : "";
+          txt.classList.remove("date-invalid");
+        });
+      }
+      // 解析輸入的日期：支援 2026/10/17、2026-10-17、2026.10.17、2026年10月17日、20261017
+      function parseTypedDate(text) {
+        const t = text.trim();
+        const m =
+          t.match(/^(\d{4})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})日?$/) ||
+          t.match(/^(\d{4})(\d{2})(\d{2})$/);
+        if (!m) return "";
+        const y = +m[1],
+          mo = +m[2],
+          dd = +m[3];
+        const dt = new Date(y, mo - 1, dd);
+        if (
+          y < 1900 ||
+          y > 2100 ||
+          dt.getFullYear() !== y ||
+          dt.getMonth() !== mo - 1 ||
+          dt.getDate() !== dd
+        )
+          return "";
+        return `${m[1]}-${String(mo).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+      }
+      function onDateTyping(id, isBlur) {
+        const txt = document.getElementById(id + "Text");
+        const iso = parseTypedDate(txt.value);
+        document.getElementById(id).value = iso;
+        if (iso) {
+          txt.classList.remove("date-invalid");
+          if (isBlur) txt.value = iso.replace(/-/g, "/");
+        } else {
+          txt.classList.toggle(
+            "date-invalid",
+            isBlur === true && txt.value.trim() !== "",
+          );
+        }
+      }
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      }
+
+      function showModal(msg, targetInputId) {
+        lastFocusTargetId = targetInputId;
+        document.getElementById("modalText").innerText = msg;
+        document.getElementById("customModal").style.display = "flex";
+        window.addEventListener("keydown", modalKeyHandler);
+      }
+      function closeModal() {
+        document.getElementById("customModal").style.display = "none";
+        window.removeEventListener("keydown", modalKeyHandler);
+        if (lastFocusTargetId) {
+          const t = document.getElementById(lastFocusTargetId);
+          if (t) {
+            t.focus();
+            if (t.type === "text" || t.type === "number") t.select();
+          }
+        }
+      }
+      function modalKeyHandler(e) {
+        if (e.key === "Enter") {
+          closeModal();
+          e.preventDefault();
+        }
+      }
+
+      function updateSplitUI() {
+        const mode = document.getElementById("splitMode").value;
+        const mixed = mode === "mixed";
+        document.getElementById("equalBox").style.display =
+          mode === "custom" ? "none" : "block";
+        document.getElementById("customBox").style.display =
+          mode === "equal" ? "none" : "block";
+        document.getElementById("mixedInfo").style.display = mixed
+          ? "block"
+          : "none";
+        document.getElementById("equalLabel").innerText = mixed
+          ? "共同負擔的部分，由誰分攤？（預設全選，可取消勾選）"
+          : "誰一起分攤？";
+        document.getElementById("customLabel").innerText = mixed
+          ? "每人個別項目金額（如個人飲料、購物等；沒有的留空）"
+          : "每人實際消費金額（沒消費的留空）";
+        document.getElementById("customHint").style.display = mixed
+          ? "none"
+          : "block";
+        const amt = document.getElementById("itemAmount");
+        if (amt.readOnly) amt.value = ""; // 從「自訂」切換出來時清掉自動加總的金額
+        amt.readOnly = mode === "custom";
+        amt.placeholder =
+          mode === "custom"
+            ? "總金額（依下方各人金額自動加總）"
+            : "總金額 (NTD)";
+        if (mode === "custom") amt.value = "";
+        updateCustomTotal();
+      }
+
+      function updateCustomTotal() {
+        const mode = document.getElementById("splitMode").value;
+        let sum = 0;
+        participants.forEach((m, i) => {
+          const v = parseFloat(document.getElementById("share_" + i)?.value);
+          if (!isNaN(v) && v > 0) sum += v;
+        });
+        const amt = document.getElementById("itemAmount");
+        if (mode === "custom") {
+          amt.value = sum > 0 ? sum : "";
+        } else if (mode === "mixed") {
+          const total = parseFloat(amt.value);
+          const n = document.querySelectorAll(
+            "#participantsGroup input:checked",
+          ).length;
+          let html = `個別項目合計：$${formatMoney(sum)}`;
+          if (!isNaN(total) && total > 0) {
+            const rest = Math.round((total - sum) * 100) / 100;
+            if (rest < 0) {
+              html += `<br><span style="color:#e53e3e; font-weight:600;">⚠ 個別項目已超過總金額 $${formatMoney(-rest)}</span>`;
+            } else {
+              html +=
+                `<br>共同分攤剩餘：$${formatMoney(rest)}` +
+                (rest > 0 && n > 0
+                  ? `（${n} 人平均，每人約 $${formatMoney(Math.ceil(rest / n))}）`
+                  : "");
+            }
+          }
+          document.getElementById("mixedInfo").innerHTML = html;
+        }
+      }
+
+      // 債權人選單：排除已選的欠款人
+      function updateCreditorOptions() {
+        const debtor = document.getElementById("debtorSelect").value;
+        const sc = document.getElementById("creditorSelect");
+        const prev = sc.value;
+        sc.innerHTML = `<option value="" disabled selected>請選擇</option>`;
+        participants.forEach((m) => {
+          if (m !== debtor)
+            sc.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+        if (prev && prev !== debtor && participants.includes(prev))
+          sc.value = prev;
+      }
+
+      // 「此次參與人員」：先勾選，按「完成」之後，才會進入下一步
+      let participantsConfirmed = false;
+
+      function renderParticipants() {
+        const box = document.getElementById("participantChips");
+        box.innerHTML = "";
+        if (members.length === 0) {
+          box.innerHTML =
+            "<span style='color:#a0aec0; font-size:14px;'>尚無成員，請先在上方新增</span>";
+          return;
+        }
+        members.forEach((m) => {
+          box.innerHTML += `<label><input type="checkbox" value="${m}" ${participants.includes(m) ? "checked" : ""} ${participantsConfirmed ? "disabled" : ""} onchange="toggleParticipant(this)"> ${m}</label>`;
+        });
+      }
+
+      function updateParticipantUI() {
+        const done = participantsConfirmed;
+        document.getElementById("mainFlow").style.display = done
+          ? "block"
+          : "none";
+        document.getElementById("participantDoneBtn").style.display = done
+          ? "none"
+          : "inline-block";
+        document.getElementById("selectAllBtn").style.display = done
+          ? "none"
+          : "inline-block";
+        document.getElementById("participantEditBtn").style.display = done
+          ? "inline-block"
+          : "none";
+        document.getElementById("participantHint").innerText = done
+          ? "✅ 已確認此次參與人員。只有這幾位會出現在下面的欄位與計算中；如需變更請按「修改參與人員」。"
+          : "請勾選這次一起出遊的人，按「完成」後才能進行下一步。";
+        renderParticipants();
+      }
+
+      function toggleParticipant(cb) {
+        const name = cb.value;
+        participants = members.filter((m) =>
+          m === name ? cb.checked : participants.includes(m),
+        );
+      }
+
+      function selectAllParticipants() {
+        participants = members.slice();
+        renderParticipants();
+      }
+
+      function confirmParticipants() {
+        if (participants.length === 0) {
+          alert("請至少勾選一位此次參與的人員！");
+          return;
+        }
+        // 已不在參與名單、但還有相關紀錄的人
+        const gone = new Set();
+        expenses.forEach((e) =>
+          [e.payer, ...Object.keys(e.shares)].forEach((n) => {
+            if (!participants.includes(n)) gone.add(n);
+          }),
+        );
+        privateDebts.forEach((p) =>
+          [p.debtor, p.creditor].forEach((n) => {
+            if (!participants.includes(n)) gone.add(n);
+          }),
+        );
+        if (gone.size > 0) {
+          const related = (e) =>
+            [e.payer, ...Object.keys(e.shares)].some((n) => gone.has(n));
+          const relatedP = (p) => gone.has(p.debtor) || gone.has(p.creditor);
+          const count =
+            expenses.filter(related).length +
+            privateDebts.filter(relatedP).length;
+          if (
+            !confirm(
+              `${Array.from(gone).join("、")} 已不在參與名單中，與他們有關的 ${count} 筆紀錄會一併移除。確定嗎？`,
+            )
+          )
+            return;
+          expenses = expenses.filter((e) => !related(e));
+          privateDebts = privateDebts.filter((p) => !relatedP(p));
+        }
+        participantsConfirmed = true;
+        updateMembersUI(); // 依參與人員重新產生下方的欄位
+        updateParticipantUI();
+        goToSection("expenseSection", "payerSelect");
+      }
+
+      function editParticipants() {
+        if (editingExpenseId !== null) clearExpenseForm(true);
+        if (editingPrivateId !== null) clearPrivateForm();
+        participantsConfirmed = false;
+        const res = document.getElementById("resultArea");
+        res.style.display = "none";
+        res.innerHTML = "";
+        updateParticipantUI();
+      }
+
+      function updateMembersUI() {
+        const tags = document.getElementById("memberTagsContainer");
+        tags.innerHTML = "";
+        if (members.length === 0) {
+          tags.innerHTML =
+            "<span style='color:#a0aec0; font-size:14px;'>尚無成員，請在下方新增</span>";
+        } else {
+          members.forEach((m) => {
+            tags.innerHTML += `<span class="member-tag">${m}<button class="remove-btn" onclick="removeMember('${m}')" title="移除">×</button></span>`;
+          });
+        }
+
+        renderParticipants();
+
+        const sp = document.getElementById("payerSelect");
+        const sd = document.getElementById("debtorSelect");
+        const sc = document.getElementById("creditorSelect");
+        const prevPayer = sp.value;
+        sp.innerHTML = `<option value="" disabled selected>請選擇</option>`;
+        sd.innerHTML = `<option value="" disabled selected>請選擇</option>`;
+        participants.forEach((m) => {
+          const o = `<option value="${m}">${m}</option>`;
+          sp.innerHTML += o;
+          sd.innerHTML += o;
+        });
+        // 墊錢的人：一開始不預設，選過之後會一直保留到下一筆
+        if (prevPayer && participants.includes(prevPayer)) sp.value = prevPayer;
+        updateCreditorOptions();
+
+        const emptyHint =
+          "<span style='color:#a0aec0; font-size:14px;'>請先在上方「此次參與人員」勾選成員</span>";
+        const group = document.getElementById("participantsGroup");
+        group.innerHTML = participants.length === 0 ? emptyHint : "";
+        participants.forEach((m) => {
+          group.innerHTML += `<label><input type="checkbox" value="${m}" checked onchange="updateCustomTotal()"> ${m}</label>`;
+        });
+
+        const ci = document.getElementById("customInputs");
+        ci.innerHTML = participants.length === 0 ? emptyHint : "";
+        participants.forEach((m, i) => {
+          ci.innerHTML += `<div class="custom-row"><span>${m}</span><input type="number" id="share_${i}" placeholder="0" step="1" inputmode="numeric" oninput="updateCustomTotal()" onkeypress="if (event.key === 'Enter') { addExpense(); event.preventDefault(); }" /></div>`;
+        });
+        updateCustomTotal();
+        renderList();
+      }
+
+      function addMember() {
+        const input = document.getElementById("newMemberInput");
+        const name = input.value.trim();
+        if (!name) return;
+        if (members.includes(name)) {
+          alert("此成員已經存在！");
+          return;
+        }
+        if (editingExpenseId !== null) clearExpenseForm(true);
+        if (editingPrivateId !== null) clearPrivateForm();
+        members.push(name);
+        saveMembers();
+        input.value = "";
+        updateMembersUI();
+        showModal(`已成功新增成員：${name}`, "newMemberInput");
+      }
+
+      function removeMember(name) {
+        if (members.length <= 1) {
+          alert("至少需要保留一個成員！");
+          return;
+        }
+        if (editingExpenseId !== null) clearExpenseForm(true);
+        if (editingPrivateId !== null) clearPrivateForm();
+        members = members.filter((m) => m !== name);
+        participants = participants.filter((m) => m !== name);
+        saveMembers();
+        // 與該成員有關的公用消費、私款一併移除
+        expenses = expenses.filter(
+          (e) => e.payer !== name && !(name in e.shares),
+        );
+        privateDebts = privateDebts.filter(
+          (p) => p.debtor !== name && p.creditor !== name,
+        );
+        if (participants.length === 0) participantsConfirmed = false;
+        updateMembersUI();
+        updateParticipantUI();
+      }
+
+      function addExpense() {
+        const title = document.getElementById("itemTitle").value.trim();
+        const payer = document.getElementById("payerSelect").value;
+        const mode = document.getElementById("splitMode").value;
+        let amount = 0;
+        let shares = {};
+        let extra = {};
+
+        // 必填檢查：這個區塊完全沒填就不處理；只要填了任何內容，所有欄位都必填
+        const amountRaw = document.getElementById("itemAmount").value;
+        const shareFilled = participants.some(
+          (m, i) => document.getElementById("share_" + i).value !== "",
+        );
+        if (!title && amountRaw === "" && !shareFilled) {
+          document.getElementById("itemTitle").focus();
+          return;
+        }
+        const missing = [];
+        if (!payer) missing.push("代墊人");
+        if (!title) missing.push("項目描述");
+        if (mode === "custom") {
+          const hasShare = participants.some(
+            (m, i) =>
+              parseFloat(document.getElementById("share_" + i).value) > 0,
+          );
+          if (!hasShare) missing.push("至少一位成員的消費金額");
+        } else {
+          const a = parseFloat(amountRaw);
+          if (isNaN(a) || a <= 0) missing.push("總金額");
+        }
+        if (
+          mode === "equal" &&
+          document.querySelectorAll("#participantsGroup input:checked")
+            .length === 0
+        ) {
+          missing.push("至少勾選一位分攤成員");
+        }
+        if (missing.length) {
+          alert("請完成以下必填項目：\n・" + missing.join("\n・"));
+          return;
+        }
+
+        if (mode === "equal") {
+          amount = parseFloat(document.getElementById("itemAmount").value);
+          const parts = Array.from(
+            document.querySelectorAll("#participantsGroup input:checked"),
+          ).map((cb) => cb.value);
+          if (!title || isNaN(amount) || amount <= 0 || parts.length === 0) {
+            alert("請填寫完整的消費資訊，並至少勾選一位分攤成員！");
+            return;
+          }
+          const each = Math.ceil(amount / parts.length);
+          parts.forEach((p) => (shares[p] = each));
+        } else if (mode === "custom") {
+          participants.forEach((m, i) => {
+            const v = parseFloat(document.getElementById("share_" + i).value);
+            if (!isNaN(v) && v > 0) {
+              shares[m] = v;
+              amount += v;
+            }
+          });
+          if (!title || amount <= 0) {
+            alert("請填寫項目描述，並至少輸入一位成員的消費金額！");
+            return;
+          }
+        } else {
+          // 混合：個別項目 + 共食（剩餘金額）平均分攤
+          const total = parseFloat(document.getElementById("itemAmount").value);
+          let indSum = 0;
+          const individual = {};
+          participants.forEach((m, i) => {
+            const v = parseFloat(document.getElementById("share_" + i).value);
+            if (!isNaN(v) && v > 0) {
+              individual[m] = v;
+              indSum += v;
+            }
+          });
+          if (!title || isNaN(total) || total <= 0) {
+            alert("請填寫項目描述與總金額！");
+            return;
+          }
+          if (indSum > total + 0.005) {
+            alert(
+              `個別項目合計 $${formatMoney(indSum)} 超過總金額 $${formatMoney(total)}，無法新增這筆消費！\n請修正金額後再試一次。`,
+            );
+            return;
+          }
+          const sharedAmount = Math.round((total - indSum) * 100) / 100;
+          const parts = Array.from(
+            document.querySelectorAll("#participantsGroup input:checked"),
+          ).map((cb) => cb.value);
+          let sharedEach = 0;
+          if (sharedAmount > 0) {
+            if (parts.length === 0) {
+              alert("還有共食金額尚未分攤，請至少勾選一位共食成員！");
+              return;
+            }
+            sharedEach = Math.ceil(sharedAmount / parts.length);
+          }
+          for (const m in individual) shares[m] = individual[m];
+          if (sharedAmount > 0)
+            parts.forEach((p) => (shares[p] = (shares[p] || 0) + sharedEach));
+          amount = total;
+          extra = {
+            individual,
+            sharedAmount,
+            sharedParts: sharedAmount > 0 ? parts : [],
+            sharedEach,
+          };
+        }
+
+        if (!payer) {
+          alert("請選擇誰先墊錢！");
+          return;
+        }
+
+        const wasEditing = editingExpenseId !== null;
+        const record = {
+          id: wasEditing ? editingExpenseId : Date.now(),
+          title,
+          amount,
+          payer,
+          shares,
+          mode,
+          ...extra,
+        };
+        if (wasEditing) {
+          const idx = expenses.findIndex((x) => x.id === editingExpenseId);
+          if (idx >= 0) expenses[idx] = record;
+          else expenses.push(record);
+        } else {
+          expenses.push(record);
+        }
+        clearExpenseForm(wasEditing);
+        renderList();
+        showModal(
+          `${wasEditing ? "已儲存修改" : "已成功新增代墊紀錄"}：${title} ($${formatMoney(amount)})`,
+          "itemTitle",
+        );
+      }
+
+      function addPrivateDebt() {
+        const debtor = document.getElementById("debtorSelect").value;
+        const creditor = document.getElementById("creditorSelect").value;
+        const amount = parseFloat(
+          document.getElementById("privateAmount").value,
+        );
+        if (!debtor || !creditor) {
+          alert("請選擇欠款人與債權人！");
+          return;
+        }
+        if (debtor === creditor) {
+          alert("欠款人與債權人不能相同！");
+          return;
+        }
+        if (isNaN(amount) || amount <= 0) {
+          alert("請輸入有效的金額！");
+          return;
+        }
+        const wasEditingP = editingPrivateId !== null;
+        const rec = {
+          id: wasEditingP ? editingPrivateId : Date.now(),
+          debtor,
+          creditor,
+          amount,
+        };
+        if (wasEditingP) {
+          const idx = privateDebts.findIndex((x) => x.id === editingPrivateId);
+          if (idx >= 0) privateDebts[idx] = rec;
+          else privateDebts.push(rec);
+        } else {
+          privateDebts.push(rec);
+        }
+        clearPrivateForm();
+        renderList();
+        showModal(
+          `${wasEditingP ? "已儲存修改" : "已成功新增私款紀錄"}：${debtor} 欠 ${creditor} $${formatMoney(amount)}`,
+          "privateAmount",
+        );
+      }
+
+      function renderList() {
+        const list = document.getElementById("itemList");
+        list.innerHTML = "";
+        if (expenses.length === 0 && privateDebts.length === 0) {
+          list.innerHTML =
+            "<li style='color:#a0aec0; font-size:14px; text-align:center;'>尚無紀錄</li>";
+          return;
+        }
+        expenses.forEach((e) => {
+          let detail;
+          if (e.mode === "custom") {
+            detail = Object.entries(e.shares)
+              .map(([n, v]) => `${n} $${formatMoney(v)}`)
+              .join("、");
+          } else if (e.mode === "mixed") {
+            const ind = Object.entries(e.individual)
+              .map(([n, v]) => `${n} $${formatMoney(v)}`)
+              .join("、");
+            const sharedText =
+              e.sharedAmount > 0
+                ? `其餘共同 $${formatMoney(e.sharedAmount)} 由 ${e.sharedParts.join("、")} 平均分攤（每人 $${formatMoney(e.sharedEach)}）`
+                : "";
+            detail = [ind ? `個別項目：${ind}` : "", sharedText]
+              .filter(Boolean)
+              .join("；");
+          } else {
+            detail = Object.keys(e.shares).join(", ") + " 平均分攤";
+          }
+          list.innerHTML += `
+          <li class="item-card${e.id === editingExpenseId ? " editing" : ""}">
+            <div>
+              <strong>[公用] ${e.title}</strong> - $${formatMoney(e.amount)}<br>
+              <span class="payer-badge">💰 ${e.payer} 先墊</span><br>
+              <small style="color:#718096;">${detail}</small>
+            </div>
+            <div class="card-actions">
+              <button class="icon-btn edit-btn" onclick="startEditExpense(${e.id})" title="編輯">✎</button>
+              <button class="icon-btn del-btn" onclick="deleteExpense(${e.id})" title="刪除">−</button>
+            </div>
+          </li>`;
+        });
+        privateDebts.forEach((p) => {
+          list.innerHTML += `
+          <li class="private-card${p.id === editingPrivateId ? " editing" : ""}">
+            <div><strong style="color:#854d0e;">[私款] ${p.debtor} 欠 ${p.creditor}</strong> - $${formatMoney(p.amount)}</div>
+            <div class="card-actions">
+              <button class="icon-btn edit-btn" onclick="startEditPrivate(${p.id})" title="編輯">✎</button>
+              <button class="icon-btn del-btn" onclick="deletePrivateDebt(${p.id})" title="刪除">−</button>
+            </div>
+          </li>`;
+        });
+      }
+
+      function updateEditUI() {
+        const editE = editingExpenseId !== null;
+        const e = editE
+          ? expenses.find((x) => x.id === editingExpenseId)
+          : null;
+        document.getElementById("addExpenseBtn").innerText = editE
+          ? "儲存修改"
+          : "新增代墊紀錄";
+        document.getElementById("cancelExpenseBtn").style.display = editE
+          ? "block"
+          : "none";
+        const noteE = document.getElementById("expenseEditNote");
+        noteE.style.display = editE ? "block" : "none";
+        if (e)
+          noteE.innerText = `✏️ 正在編輯：${e.title}（修改後按「儲存修改」）`;
+
+        const editP = editingPrivateId !== null;
+        const p = editP
+          ? privateDebts.find((x) => x.id === editingPrivateId)
+          : null;
+        document.getElementById("addPrivateBtn").innerText = editP
+          ? "儲存修改"
+          : "新增私款紀錄";
+        document.getElementById("cancelPrivateBtn").style.display = editP
+          ? "block"
+          : "none";
+        const noteP = document.getElementById("privateEditNote");
+        noteP.style.display = editP ? "block" : "none";
+        if (p)
+          noteP.innerText = `✏️ 正在編輯：${p.debtor} 欠 ${p.creditor}（修改後按「儲存修改」）`;
+      }
+
+      // 清空公用消費表單並離開編輯模式（resetChecks：把分攤勾選恢復為全選）
+      function clearExpenseForm(resetChecks) {
+        editingExpenseId = null;
+        document.getElementById("itemTitle").value = "";
+        document.getElementById("itemAmount").value = "";
+        participants.forEach((m, i) => {
+          const el = document.getElementById("share_" + i);
+          if (el) el.value = "";
+        });
+        if (resetChecks) {
+          document
+            .querySelectorAll("#participantsGroup input")
+            .forEach((cb) => (cb.checked = true));
+        }
+        updateCustomTotal();
+        updateEditUI();
+      }
+
+      function clearPrivateForm() {
+        editingPrivateId = null;
+        document.getElementById("privateAmount").value = "";
+        updateEditUI();
+      }
+
+      function startEditExpense(id) {
+        const e = expenses.find((x) => x.id === id);
+        if (!e) return;
+        editingExpenseId = id;
+        document.getElementById("itemTitle").value = e.title;
+        document.getElementById("payerSelect").value = e.payer;
+        document.getElementById("splitMode").value = e.mode;
+        updateSplitUI();
+
+        participants.forEach(
+          (m, i) => (document.getElementById("share_" + i).value = ""),
+        );
+        const boxes = document.querySelectorAll("#participantsGroup input");
+        const amt = document.getElementById("itemAmount");
+        if (e.mode === "equal") {
+          amt.value = e.amount;
+          boxes.forEach((cb) => (cb.checked = cb.value in e.shares));
+        } else if (e.mode === "custom") {
+          participants.forEach((m, i) => {
+            if (m in e.shares)
+              document.getElementById("share_" + i).value = e.shares[m];
+          });
+          boxes.forEach((cb) => (cb.checked = true));
+        } else {
+          amt.value = e.amount;
+          participants.forEach((m, i) => {
+            if (m in e.individual)
+              document.getElementById("share_" + i).value = e.individual[m];
+          });
+          const sp = e.sharedParts.length ? e.sharedParts : participants;
+          boxes.forEach((cb) => (cb.checked = sp.includes(cb.value)));
+        }
+        updateCustomTotal();
+        updateEditUI();
+        renderList();
+        const t = document.getElementById("itemTitle");
+        t.scrollIntoView({ behavior: "smooth", block: "center" });
+        t.focus();
+      }
+
+      function cancelEditExpense() {
+        clearExpenseForm(true);
+        renderList();
+      }
+
+      function startEditPrivate(id) {
+        const p = privateDebts.find((x) => x.id === id);
+        if (!p) return;
+        editingPrivateId = id;
+        document.getElementById("debtorSelect").value = p.debtor;
+        updateCreditorOptions();
+        document.getElementById("creditorSelect").value = p.creditor;
+        document.getElementById("privateAmount").value = p.amount;
+        updateEditUI();
+        renderList();
+        const a = document.getElementById("privateAmount");
+        a.scrollIntoView({ behavior: "smooth", block: "center" });
+        a.focus();
+      }
+
+      function cancelEditPrivate() {
+        clearPrivateForm();
+        renderList();
+      }
+
+      function resetAll() {
+        if (!confirm("確定要清除所有帳目紀錄與出遊資訊嗎？（成員會保留）"))
+          return;
+        editingExpenseId = null;
+        editingPrivateId = null;
+        updateEditUI();
+        participants = []; // 新的一趟：參與人員恢復為全部不勾選
+        participantsConfirmed = false;
+        expenses = [];
+        privateDebts = [];
+        const res = document.getElementById("resultArea");
+        res.style.display = "none";
+        res.innerHTML = "";
+        document.getElementById("itemTitle").value = "";
+        document.getElementById("privateAmount").value = "";
+        document.getElementById("tripLocation").value = "";
+        document.getElementById("tripStart").value = "";
+        document.getElementById("tripEnd").value = "";
+        syncDateDisplay();
+        document.getElementById("splitMode").value = "equal";
+        document.getElementById("payerSelect").value = "";
+        updateMembersUI();
+        updateSplitUI();
+        updateParticipantUI();
+      }
+
+      function deleteExpense(id) {
+        if (editingExpenseId === id) clearExpenseForm(true);
+        expenses = expenses.filter((e) => e.id !== id);
+        renderList();
+      }
+      function deletePrivateDebt(id) {
+        if (editingPrivateId === id) clearPrivateForm();
+        privateDebts = privateDebts.filter((p) => p.id !== id);
+        renderList();
+      }
+
+      function calculate() {
+        if (participants.length === 0) {
+          alert("請先在「此次參與人員」勾選這次一起出遊的成員！");
+          return;
+        }
+
+        let net = {};
+        participants.forEach((m) => (net[m] = 0));
+        let totalExpense = 0; // 總消費金額：所有代墊紀錄的總額
+        let sharedTotal = 0; // 公用總支出：大家平均分攤的部分
+
+        expenses.forEach((e) => {
+          totalExpense += e.amount;
+          if (e.mode === "equal") sharedTotal += e.amount;
+          else if (e.mode === "mixed") sharedTotal += e.sharedAmount;
+          net[e.payer] += e.amount;
+          for (const p in e.shares) net[p] -= e.shares[p];
+        });
+        privateDebts.forEach((p) => {
+          net[p.debtor] -= p.amount;
+          net[p.creditor] += p.amount;
+        });
+
+        const paidBy = (m) =>
+          expenses
+            .filter((e) => e.payer === m)
+            .reduce((s, e) => s + e.amount, 0);
+        let master = participants[0],
+          maxPaid = -Infinity;
+        participants.forEach((m) => {
+          const p = paidBy(m);
+          if (p > maxPaid) {
+            maxPaid = p;
+            master = m;
+          }
+        });
+
+        // 無條件進位造成的零頭差額，由收款窗口收。
+        let totalSum = 0;
+        for (const m in net) totalSum += net[m];
+        if (Math.abs(totalSum) > 0.01) net[master] -= totalSum;
+
+        let tx = [];
+        participants.forEach((m) => {
+          if (m === master) return;
+          if (net[m] < -0.01)
+            tx.push(
+              `${m} 應給 ${master} <strong>$${formatMoney(Math.round(-net[m]))}</strong> 元`,
+            );
+          else if (net[m] > 0.01)
+            tx.push(
+              `${master} 應給 ${m} <strong>$${formatMoney(Math.round(net[m]))}</strong> 元`,
+            );
+        });
+
+        const loc = document.getElementById("tripLocation").value.trim();
+        const d1 = document.getElementById("tripStart").value;
+        const d2 = document.getElementById("tripEnd").value;
+        if (
+          (!d1 && document.getElementById("tripStartText").value.trim()) ||
+          (!d2 && document.getElementById("tripEndText").value.trim())
+        ) {
+          alert(
+            "出遊日期格式不正確，請輸入像 2026/10/17 這樣的日期，或按 📅 選擇。",
+          );
+          return;
+        }
+        if (d1 && d2 && d2 < d1) {
+          alert("結束日期不能早於開始日期！");
+          return;
+        }
+        const fmt = (s) => s.replace(/-/g, "/");
+        let dateText = "";
+        if (d1 && d2 && d1 !== d2) dateText = `${fmt(d1)} ～ ${fmt(d2)}`;
+        else if (d1 || d2) dateText = fmt(d1 || d2);
+        const tripHtml =
+          (loc
+            ? `<p>• 出遊地點：<strong>${escapeHtml(loc)}</strong></p>`
+            : "") +
+          (dateText ? `<p>• 出遊日期：<strong>${dateText}</strong></p>` : "");
+
+        const res = document.getElementById("resultArea");
+        res.style.display = "block";
+        res.innerHTML = `
+          <h3 style="margin-top:0; color:#166534;">帳目總覽：</h3>
+          ${tripHtml}
+          <p>• 總消費金額：$${formatMoney(totalExpense)} 元</p>
+          <p>• 公用總支出（大家平均分攤的部分）：$${formatMoney(sharedTotal)} 元</p>
+          <p>• 總收款窗口：<strong>${master}</strong></p>
+          <hr style="border:none; border-top:1px solid #bbf7d0; margin:12px 0;">
+          <h3 style="color:#166534; margin-bottom:10px;">轉帳方案：</h3>
+          ${tx.length ? tx.map((t) => `<p style="font-size:16px; margin:6px 0;">• ${t}</p>`).join("") : "<p>完全平帳，無需轉帳！</p>"}`;
+      }
+
+      updateMembersUI();
+      updateParticipantUI();
+    </script>
+  </body>
+</html>
