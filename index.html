@@ -13,16 +13,50 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <!-- 深色模式 -->
     <meta name="color-scheme" content="light dark" />
-    <meta
-      name="theme-color"
-      content="#f4f7f9"
-      media="(prefers-color-scheme: light)"
-    />
-    <meta
-      name="theme-color"
-      content="#0f1524"
-      media="(prefers-color-scheme: dark)"
-    />
+    <meta name="theme-color" id="themeColorMeta" content="#f4f7f9" />
+    <script>
+      // 主題：沒手動選過就跟著系統；按右上角按鈕後會記住你的選擇
+      const THEME_KEY = "tripSplitTheme";
+      const sysDark = window.matchMedia("(prefers-color-scheme: dark)");
+      const SUN_SVG =
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+      const MOON_SVG =
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+      function getThemePref() {
+        try {
+          const v = localStorage.getItem(THEME_KEY);
+          if (v === "light" || v === "dark") return v;
+        } catch (e) {}
+        return null;
+      }
+      function currentTheme() {
+        return getThemePref() || (sysDark.matches ? "dark" : "light");
+      }
+      function applyTheme() {
+        const t = currentTheme();
+        document.documentElement.setAttribute("data-theme", t);
+        const meta = document.getElementById("themeColorMeta");
+        if (meta) meta.setAttribute("content", t === "dark" ? "#0f1524" : "#f4f7f9");
+        const btn = document.getElementById("themeToggle");
+        if (btn) {
+          // 深色時顯示太陽（點了變淺色）；淺色時顯示月亮（點了變深色）
+          btn.innerHTML = t === "dark" ? SUN_SVG : MOON_SVG;
+          const label = t === "dark" ? "切換成淺色模式" : "切換成深色模式";
+          btn.title = label;
+          btn.setAttribute("aria-label", label);
+        }
+      }
+      function toggleTheme() {
+        const next = currentTheme() === "dark" ? "light" : "dark";
+        try {
+          localStorage.setItem(THEME_KEY, next);
+        } catch (e) {}
+        applyTheme();
+      }
+      if (sysDark.addEventListener) sysDark.addEventListener("change", applyTheme);
+      else if (sysDark.addListener) sysDark.addListener(applyTheme);
+      applyTheme(); // 頁面一開始就套用，避免閃一下白畫面
+    </script>
 
     <style>
       body {
@@ -437,10 +471,54 @@
       }
       @keyframes flashBorder {
         from {
-          box-shadow: 0 0 0 3px #93c5fd;
+          box-shadow: 0 0 0 3px var(--flash, #93c5fd);
         }
         to {
           box-shadow: 0 0 0 3px transparent;
+        }
+      }
+      :root[data-theme="light"] {
+        color-scheme: light;
+      }
+      /* 標題列與主題切換按鈕 */
+      .app-header {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        margin-bottom: 24px;
+      }
+      .app-header h1 {
+        margin: 0;
+        padding: 0 52px; /* 左右留空間，避免蓋到按鈕 */
+      }
+      .theme-toggle {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        border: none;
+        border-radius: 13px;
+        background: #edf2f7;
+        color: #4a5568;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .theme-toggle:active {
+        transform: translateY(-50%) scale(0.96);
+      }
+      /* 從主畫面開啟（獨立 App 模式）時，頂端多留一點空間 */
+      @media (display-mode: standalone) {
+        body {
+          padding-top: calc(env(safe-area-inset-top, 0px) + 22px);
+          padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
         }
       }
       /* ===== 手機版面修正 ===== */
@@ -464,11 +542,14 @@
 
       @media (max-width: 480px) {
         body {
-          padding: 10px;
+          padding: 18px 14px;
         }
         .container {
-          padding: 14px;
-          border-radius: 14px;
+          padding: 20px 18px;
+          border-radius: 16px;
+        }
+        .app-header {
+          margin-bottom: 20px;
         }
         .section {
           padding: 14px;
@@ -476,7 +557,6 @@
         }
         h1 {
           font-size: 21px;
-          margin-bottom: 16px;
         }
 
         /* 兩個日期欄位上下排列，各自有完整寬度 */
@@ -521,185 +601,174 @@
         }
       }
 
-      /* ===== 深色模式（跟著手機／電腦的外觀設定自動切換） ===== */
-      @media (prefers-color-scheme: dark) {
-        :root {
-          color-scheme: dark;
-        }
-        body {
-          background: #0f1524;
-          color: #e2e8f0;
-        }
-        .container {
-          background: #182033;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-        }
-        .section {
-          background: #1d263a;
-          border-color: #334155;
-          box-shadow: none;
-        }
-        .section-title {
-          color: #cbd5e1;
-          border-bottom-color: #475569;
-        }
-        label {
-          color: #cbd5e1;
-        }
-        input[type="text"],
-        input[type="number"],
-        input[type="date"],
-        select {
-          background-color: #0f172a;
-          border-color: #334155;
-          color: #e2e8f0;
-        }
-        input::placeholder {
-          color: #64748b;
-        }
-        input[type="text"]:focus,
-        input[type="number"]:focus,
-        input[type="date"]:focus,
-        select:focus {
-          background-color: #0f172a;
-          border-color: #94a3b8;
-        }
-        input[readonly] {
-          background: #334155;
-          color: #cbd5e1;
-        }
-        .date-field .cal-btn:hover {
-          background: #334155;
-        }
-        .date-invalid {
-          background-color: #3b1d22 !important;
-          border-color: #f87171 !important;
-        }
-        .hint {
-          color: #94a3b8;
-        }
-
-        .btn-public {
-          background: #4b6a89;
-        }
-        .btn-public:hover {
-          background: #5a7a9a;
-        }
-        .btn-main {
-          background: #3f5f80;
-        }
-        .btn-main:hover {
-          background: #4b6a89;
-        }
-        .btn-reset {
-          background: #475569;
-        }
-        .btn-reset:hover {
-          background: #5b6b80;
-        }
-
-        .member-tag,
-        .checkbox-group label {
-          background: #263247;
-          border-color: #3b4a60;
-          color: #e2e8f0;
-        }
-        .member-tag .remove-btn {
-          background: rgba(226, 232, 240, 0.15);
-          color: #e2e8f0;
-        }
-        .member-tag .remove-btn:hover {
-          background: rgba(226, 232, 240, 0.3);
-        }
-        .checkbox-group input[type="checkbox"] {
-          accent-color: #7da0c4;
-        }
-
-        .item-card {
-          background: #263247;
-          border-color: #3b4a60;
-        }
-        .item-card small {
-          color: #94a3b8 !important;
-        }
-        .private-card {
-          background: #3a3317;
-          border-color: #854d0e;
-        }
-        .private-card strong {
-          color: #fde68a !important;
-        }
-        .payer-badge {
-          background: #422006;
-          color: #fcd34d;
-          border-color: #92400e;
-        }
-
-        .icon-btn {
-          background: transparent;
-        }
-        .edit-btn {
-          color: #93c5fd;
-          border-color: #3b82f6;
-        }
-        .edit-btn:hover {
-          background: #1e3a5f;
-        }
-        .del-btn {
-          color: #fca5a5;
-          border-color: #ef4444;
-        }
-        .del-btn:hover {
-          background: #4c1d1d;
-        }
-
-        .edit-note {
-          background: #0c2a3d;
-          border-color: #0369a1;
-          color: #bae6fd;
-        }
-        .editing {
-          outline-color: #60a5fa;
-        }
-
-        .result-box {
-          background: #10261a;
-          border-color: #166534;
-          color: #bbf7d0;
-        }
-        .result-box h3 {
-          color: #86efac !important;
-        }
-        .result-box hr {
-          border-top-color: #166534 !important;
-        }
-
-        .modal-content {
-          background: #1d263a;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
-        }
-        #customModal {
-          background: rgba(0, 0, 0, 0.6);
-        }
-
-        /* 程式裡直接寫在標籤上的顏色 */
-        span[style*="4a5568"] {
-          color: #cbd5e1 !important;
-        }
-        @keyframes flashBorder {
-          from {
-            box-shadow: 0 0 0 3px #3b82f6;
-          }
-          to {
-            box-shadow: 0 0 0 3px transparent;
-          }
-        }
+      /* ===== 深色模式（由 data-theme="dark" 控制） ===== */
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --flash: #3b82f6;
+      }
+      :root[data-theme="dark"] body {
+        background: #0f1524;
+        color: #e2e8f0;
+      }
+      :root[data-theme="dark"] .container {
+        background: #182033;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      }
+      :root[data-theme="dark"] .section {
+        background: #1d263a;
+        border-color: #334155;
+        box-shadow: none;
+      }
+      :root[data-theme="dark"] .section-title {
+        color: #cbd5e1;
+        border-bottom-color: #475569;
+      }
+      :root[data-theme="dark"] label {
+        color: #cbd5e1;
+      }
+      :root[data-theme="dark"] input[type="text"],
+      :root[data-theme="dark"] input[type="number"],
+      :root[data-theme="dark"] input[type="date"],
+      :root[data-theme="dark"] select {
+        background-color: #0f172a;
+        border-color: #334155;
+        color: #e2e8f0;
+      }
+      :root[data-theme="dark"] input::placeholder {
+        color: #64748b;
+      }
+      :root[data-theme="dark"] input[type="text"]:focus,
+      :root[data-theme="dark"] input[type="number"]:focus,
+      :root[data-theme="dark"] input[type="date"]:focus,
+      :root[data-theme="dark"] select:focus {
+        background-color: #0f172a;
+        border-color: #94a3b8;
+      }
+      :root[data-theme="dark"] input[readonly] {
+        background: #334155;
+        color: #cbd5e1;
+      }
+      :root[data-theme="dark"] .date-field .cal-btn:hover {
+        background: #334155;
+      }
+      :root[data-theme="dark"] .date-invalid {
+        background-color: #3b1d22 !important;
+        border-color: #f87171 !important;
+      }
+      :root[data-theme="dark"] .hint {
+        color: #94a3b8;
+      }
+      :root[data-theme="dark"] .btn-public {
+        background: #4b6a89;
+      }
+      :root[data-theme="dark"] .btn-public:hover {
+        background: #5a7a9a;
+      }
+      :root[data-theme="dark"] .btn-main {
+        background: #3f5f80;
+      }
+      :root[data-theme="dark"] .btn-main:hover {
+        background: #4b6a89;
+      }
+      :root[data-theme="dark"] .btn-reset {
+        background: #475569;
+      }
+      :root[data-theme="dark"] .btn-reset:hover {
+        background: #5b6b80;
+      }
+      :root[data-theme="dark"] .member-tag,
+      :root[data-theme="dark"] .checkbox-group label {
+        background: #263247;
+        border-color: #3b4a60;
+        color: #e2e8f0;
+      }
+      :root[data-theme="dark"] .member-tag .remove-btn {
+        background: rgba(226, 232, 240, 0.15);
+        color: #e2e8f0;
+      }
+      :root[data-theme="dark"] .member-tag .remove-btn:hover {
+        background: rgba(226, 232, 240, 0.3);
+      }
+      :root[data-theme="dark"] .checkbox-group input[type="checkbox"] {
+        accent-color: #7da0c4;
+      }
+      :root[data-theme="dark"] .item-card {
+        background: #263247;
+        border-color: #3b4a60;
+      }
+      :root[data-theme="dark"] .item-card small {
+        color: #94a3b8 !important;
+      }
+      :root[data-theme="dark"] .private-card {
+        background: #3a3317;
+        border-color: #854d0e;
+      }
+      :root[data-theme="dark"] .private-card strong {
+        color: #fde68a !important;
+      }
+      :root[data-theme="dark"] .payer-badge {
+        background: #422006;
+        color: #fcd34d;
+        border-color: #92400e;
+      }
+      :root[data-theme="dark"] .icon-btn {
+        background: transparent;
+      }
+      :root[data-theme="dark"] .edit-btn {
+        color: #93c5fd;
+        border-color: #3b82f6;
+      }
+      :root[data-theme="dark"] .edit-btn:hover {
+        background: #1e3a5f;
+      }
+      :root[data-theme="dark"] .del-btn {
+        color: #fca5a5;
+        border-color: #ef4444;
+      }
+      :root[data-theme="dark"] .del-btn:hover {
+        background: #4c1d1d;
+      }
+      :root[data-theme="dark"] .edit-note {
+        background: #0c2a3d;
+        border-color: #0369a1;
+        color: #bae6fd;
+      }
+      :root[data-theme="dark"] .editing {
+        outline-color: #60a5fa;
+      }
+      :root[data-theme="dark"] .result-box {
+        background: #10261a;
+        border-color: #166534;
+        color: #bbf7d0;
+      }
+      :root[data-theme="dark"] .result-box h3 {
+        color: #86efac !important;
+      }
+      :root[data-theme="dark"] .result-box hr {
+        border-top-color: #166534 !important;
+      }
+      :root[data-theme="dark"] .modal-content {
+        background: #1d263a;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+      }
+      :root[data-theme="dark"] #customModal {
+        background: rgba(0, 0, 0, 0.6);
+      }
+      :root[data-theme="dark"] .theme-toggle {
+        background: #334155;
+        color: #e2e8f0;
+      }
+      :root[data-theme="dark"] span[style*="4a5568"] {
+        color: #cbd5e1 !important;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>旅費分攤計算</h1>
+      <div class="app-header">
+        <h1>旅費分攤計算</h1>
+        <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()"></button>
+      </div>
 
       <div class="section" id="tripSection">
         <span class="section-title">出遊資訊</span>
@@ -1954,6 +2023,7 @@
 
       updateMembersUI();
       updateParticipantUI();
+      applyTheme(); // 更新主題按鈕的選取狀態
     </script>
   </body>
 </html>
